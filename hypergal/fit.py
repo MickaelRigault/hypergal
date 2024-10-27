@@ -912,10 +912,15 @@ class SceneFitter(object):
             print(
                 f"starting point scene parameters: {self.scene.get_parameters()}")
 
-        m = Minuit.from_array_func(self.get_logprob if use_priors else self.get_chi2,
-                                   guess_free, limit=limit,
-                                   name=self.free_parameters, error=error, errordef=errordef,
+        m = Minuit(self.get_logprob if use_priors else self.get_chi2,
+                       guess_free, name=self.free_parameters,
+                       error=error, errordef=errordef,
                                    **kwargs)
+        m.limits = limit
+        m.errordef = errordef        
+        if error is not None:
+            m.errors = error
+
         if not runmigrad:
             self.set_bestfit(None)
             return m
@@ -929,16 +934,16 @@ class SceneFitter(object):
             warnings.warn("migrad() is not valid.")
             return None
 
-        if not migradout[0].is_valid:
+        if not migradout.valid:
             warnings.warn("migrad() is not valid.")
 
-        if migradout[0].has_parameters_at_limit:
-            warnings.warn("migrad() has parameters at limit.")
+#        if migradout[0].has_parameters_at_limit:
+#            warnings.warn("migrad() has parameters at limit.")
 
         self.set_bestfit(
-            {**dict(m.values), **{k+"_err": v for k, v in m.errors.items()}})
+            {**m.values.to_dict(), **{k+"_err": v for k, v in m.errors.to_dict().items()}})
         # setup the scene at the best values
-        self.scene.update(**dict(m.values))
+        self.scene.update( **m.values.to_dict() )
         return migradout
 
     # ============== #

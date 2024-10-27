@@ -267,7 +267,7 @@ class Overlay( object ):
         project_serie = self.project_flux(flux, self.overlaydf,  **kwargs)
         
         if fill_comp:
-            flux_out = np.zeros( len(self.mpoly_comp) )
+            flux_out = np.zeros( len(self.mpoly_comp.geoms) )
             flux_out[project_serie.index] = project_serie.values
             return flux_out
             
@@ -500,15 +500,15 @@ class Overlay( object ):
         Pandas.DataFrame()
 
         """
-        id_in = np.arange(len(mpoly_in))
+        id_in = np.arange( len(mpoly_in.geoms) )
         if use_overlapping:
             mpoly_in, flag = cls.get_overlapping(mpoly_in, mpoly_comp.convex_hull)
             id_in = id_in[flag]
             
-        geoin = geopandas.GeoDataFrame(geometry=list(mpoly_in))
+        geoin = geopandas.GeoDataFrame(geometry= list(mpoly_in.geoms))
         geoin["id_in"] = id_in
 
-        geocomp = geopandas.GeoDataFrame(geometry=list(mpoly_comp))
+        geocomp = geopandas.GeoDataFrame(geometry= list(mpoly_comp.geoms))
         geocomp["id_comp"] = np.arange(len(geocomp))
         
         interect =  geopandas.overlay(geoin, geocomp, 
@@ -546,7 +546,7 @@ class Overlay( object ):
 
         """
         # individual vertices on the multipolygin
-        verts = np.asarray([m.exterior.xy  for m in list(mpolyin)])
+        verts = np.asarray([m.exterior.xy  for m in list(mpolyin.geoms)])
         all_verts = np.moveaxis(verts, 0,1)
         # its shape (how many)
         polyshape = np.shape(all_verts)[1:]
@@ -716,7 +716,7 @@ class Overlay( object ):
             vmin, vmax = parse_vmin_vmax(flux, vmin, vmax)
             colors = cmap( (flux-vmin)/(vmax-vmin) )
         else:
-            colors = [facecolor]*len(mpoly)
+            colors = [facecolor]*len(mpoly.geoms)
 
         
         for i,poly in enumerate(mpoly):

@@ -1295,9 +1295,9 @@ class PointSource(object):
     @staticmethod
     def get_centroids(mpoly):
         """ """
-        listpoly = list(mpoly)
+        listpoly = list(mpoly.geoms)
         cent = [np.array([listpoly[i].centroid.x, listpoly[i].centroid.y])
-                for i in range(len(listpoly))]
+                for i in range( len(listpoly) ) ]
         cent = np.asarray(cent).squeeze()
 
         return cent
