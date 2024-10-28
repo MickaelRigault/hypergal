@@ -63,7 +63,7 @@ pip install hypergal
 
 *** 
 
-Below instruction could be deprecated. More to come
+instructions below could be deprecated. More to come
 
 # Main script: ```run_hypergal.py```
 
