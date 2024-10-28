@@ -11,14 +11,51 @@ This project has received funding from the Project IDEXLYON at the University of
 ## References
 If you are using HyperGal or a supernova spectrum obtained from it, please cite [the _HyperGal_ paper](https://arxiv.org/abs/2209.10882).
 ***
+
 # Installation
 
+Hypergal requires Cigale. Since you cannot simply `pip install cigale`
+(but almost). Please follow these few lines of instruction.
+
+1. Create a dedicated environment
+
 ```bash
-git clone https://github.com/JeremyLezmy/hypergal.git
-cd hypergal
-python setup.py install
+conda create -n hypergal python=3.11
 ```
-``` pip ``` installation will be available soon.
+and "log" in.
+```bash
+conda activate hypergal
+```
+
+2. Install the basic python packages
+```bash
+conda install numpy scipy pandas matplotlib dask 
+```
+
+
+3. Download Cigale and install it.
+
+In doubt, please follow the specified Cigale instructions: [https://cigale.lam.fr/](cigale.lam.fr)
+- Download the latest cigale from
+  [here](https://gitlab.lam.fr/cigale/cigale/-/archive/v2022.1/cigale-v2022.1.tar.gz)
+- uncompress the .tar.gz and go inside the cigale repo
+- Install Astropy
+```bash
+pip install astropy
+```
+- and run (takes some time)
+```bash
+python setup.py build
+```
+and 
+```bash
+pip install .
+```
+
+4. Install hypergal
+```bash
+pip install hypergal
+```
 
 *** 
 

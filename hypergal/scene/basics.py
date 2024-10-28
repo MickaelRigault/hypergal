@@ -986,7 +986,8 @@ class FullSliceScene(SliceScene):
                  psfgal=None, adapt_flux=True, pointsource=None, curved_bkgd=False,
                  host_only=False, sn_only=False, **kwargs):
 
-        _ = super().__init__(slice_in=slice_in, slice_comp=slice_comp, xy_in=xy_in, xy_comp=xy_comp, load_overlay=load_overlay,
+        _ = super().__init__(slice_in=slice_in, slice_comp=slice_comp,
+                             xy_in=xy_in, xy_comp=xy_comp, load_overlay=load_overlay,
                              psf=psfgal, adapt_flux=adapt_flux, **kwargs)
 
         self.set_pointsource(pointsource)
@@ -1009,7 +1010,8 @@ class FullSliceScene(SliceScene):
             self._has_sn_only = False
 
     @classmethod
-    def from_slices(cls, slice_in, slice_comp, xy_in=None, xy_comp=None, psfgal=None, pointsource=None, curved_bkgd=False,
+    def from_slices(cls, slice_in, slice_comp, xy_in=None,
+                    xy_comp=None, psfgal=None, pointsource=None, curved_bkgd=False,
                     host_only=False, sn_only=False, **kwargs):
         """ 
         Take a 2D (slice) as an input data + geometry, and adapt it to an output data + geometry.
@@ -1046,7 +1048,8 @@ class FullSliceScene(SliceScene):
 
     def get_model(self, ampl=None, background=None,
                   overlayparam=None,
-                  psfparam=None, ampl_ps=None, bkgdx=None, bkgdy=None, bkgdxy=None, bkgdxx=None, bkgdyy=None, fill_comp=False):
+                  psfparam=None, ampl_ps=None, bkgdx=None,
+                  bkgdy=None, bkgdxy=None, bkgdxx=None, bkgdyy=None, fill_comp=False):
         """Convolves and project flux_in into the 
 
         Parameters
@@ -1096,6 +1099,7 @@ class FullSliceScene(SliceScene):
         else:
             psf_hostparam = None
             psf_psparam = None
+            
         # 1.
         # Change position of the comp grid if needed
         #   - if the overlayparam are the same as already know, no update made.
@@ -1104,8 +1108,10 @@ class FullSliceScene(SliceScene):
                 reset_overlay = False
             else:
                 reset_overlay = True
+                
             self.overlay.change_comp(
-                **{k: v for k, v in overlayparam.items() if v is not None}, reset_overlay=reset_overlay)
+                **{k: v for k, v in overlayparam.items() if v is not None},
+                reset_overlay=reset_overlay)
 
         # 2.
         # Change values of flux and variances of _in by convolving the image

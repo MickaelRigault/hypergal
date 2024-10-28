@@ -302,7 +302,7 @@ class Overlay( object ):
         """ Measures the overlay df and set it. \n
         Uses self.get_overlaydf()
         """
-        self.set_overlaydf( self.get_overlaydf(self.mpoly_in, self.mpoly_comp, **kwargs))
+        self.set_overlaydf( self.get_overlaydf(self.mpoly_in, self.mpoly_comp, **kwargs) )
         
     # -------- #
     #  CHANGE  #
@@ -469,7 +469,7 @@ class Overlay( object ):
         return dfout_.groupby("id_comp")["outflux"].sum()*norm
     
     @classmethod
-    def get_overlaydf(cls, mpoly_in, mpoly_comp, use_overlapping=True,
+    def get_overlaydf(cls, mpoly_in, mpoly_comp, use_overlapping=False,
                           area_ok=1e-3, warn_ifok=False):
         """ 
         Get overlay dataframe with overlapping areas for each polygon, given multipolygon in and out.
@@ -500,6 +500,10 @@ class Overlay( object ):
         Pandas.DataFrame()
 
         """
+        #
+        # - Method to be fasten
+        #
+        
         id_in = np.arange( len(mpoly_in.geoms) )
         if use_overlapping:
             mpoly_in, flag = cls.get_overlapping(mpoly_in, mpoly_comp.convex_hull)
@@ -511,8 +515,8 @@ class Overlay( object ):
         geocomp = geopandas.GeoDataFrame(geometry= list(mpoly_comp.geoms))
         geocomp["id_comp"] = np.arange(len(geocomp))
         
-        interect =  geopandas.overlay(geoin, geocomp, 
-                                     how='intersection')
+        interect =  geopandas.overlay(geoin, geocomp, how='intersection')
+        
         unique_area = geoin.area.unique()
         if len(unique_area)==1:
             area_ = geoin.area[0]
@@ -529,8 +533,8 @@ class Overlay( object ):
         
     @staticmethod
     def get_overlapping(mpolyin, contour):
-        """ 
-        Get Multipolygon of overlapping region according to a multipolygon_in and a contour of destination.
+        """ Get Multipolygon of overlapping region according to a multipolygon_in 
+        and a contour of destination.
 
         Parameters
         ----------
@@ -543,10 +547,9 @@ class Overlay( object ):
         Returns
         -------
         shapely.geometry.Multipolygon()
-
         """
         # individual vertices on the multipolygin
-        verts = np.asarray([m.exterior.xy  for m in list(mpolyin.geoms)])
+        verts = np.asarray([m.exterior.xy  for m in mpolyin.geoms])
         all_verts = np.moveaxis(verts, 0,1)
         # its shape (how many)
         polyshape = np.shape(all_verts)[1:]
@@ -719,7 +722,7 @@ class Overlay( object ):
             colors = [facecolor]*len(mpoly.geoms)
 
         
-        for i,poly in enumerate(mpoly):
+        for i, poly in enumerate(mpoly.geoms):
             _ = show_polygon(poly, facecolor=colors[i], edgecolor=edgecolor, ax=ax, **kwargs)
 
         if adjust:
@@ -1175,7 +1178,7 @@ class OverlayADR( _Overlay3D_ ):
 
 
         
-        for i,poly in enumerate(mpoly):
+        for i, poly in enumerate(mpoly.geoms):
             _ = show_polygon(poly, facecolor=colors[i], edgecolor=edgecolor, ax=ax, **kwargs)
 
         if adjust:

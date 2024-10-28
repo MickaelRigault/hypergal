@@ -349,7 +349,7 @@ class SceneFitter(object):
 
         migradout = this.fit(guess=guess, limit=limit, error=error, use_priors=use_priors,
                              runmigrad=True)
-        if onlyvalid and (migradout == None or not migradout[0].is_valid):
+        if onlyvalid and (migradout == None or not migradout.valid):
             return None
 
         if savefile is not None:
@@ -471,7 +471,7 @@ class SceneFitter(object):
             raise ValueError(
                 f"you must provide {self.nfree_parameters} parameters, you gave {len(parameters)}")
 
-        dfreeparam = {k: v for k, v in zip(self.free_parameters, parameters)}
+        dfreeparam = dict( zip(self.free_parameters, parameters) )
         if self._debug:
             print(f"setting: {dfreeparam}")
 
@@ -717,19 +717,19 @@ class SceneFitter(object):
 
         if add_lbda:
             values["lbda"] = self.scene.slice_in.lbda
-            errors["lbda"] = np.NaN
+            errors["lbda"] = np.nan
 
         if add_coefs:
             # Norm
             values["norm_comp"] = self.scene.norm_comp
-            errors["norm_comp"] = np.NaN
+            errors["norm_comp"] = np.nan
             values["norm_in"] = self.scene.norm_in
-            errors["norm_in"] = np.NaN
+            errors["norm_in"] = np.nan
             # Background
             values["bkgd_comp"] = self.scene.bkgd_comp
-            errors["bkgd_comp"] = np.NaN
+            errors["bkgd_comp"] = np.nan
             values["bkgd_in"] = self.scene.bkgd_in
-            errors["bkgd_in"] = np.NaN
+            errors["bkgd_in"] = np.nan
 
         if hasattr(self.scene, "has_host_only") and self.scene.has_host_only:
 
@@ -833,7 +833,7 @@ class SceneFitter(object):
             self.set_freeparameters(parameters)
 
         prior = self.get_prior()
-        if prior == 0:  # this way, avoid the NaN inside get_chi2()
+        if prior == 0:  # this way, avoid the nan inside get_chi2()
             if self._debug:
                 print(f"prior=0, returning {bound_value}")
             return bound_value
@@ -914,8 +914,7 @@ class SceneFitter(object):
 
         m = Minuit(self.get_logprob if use_priors else self.get_chi2,
                        guess_free, name=self.free_parameters,
-                       error=error, errordef=errordef,
-                                   **kwargs)
+                       **kwargs)
         m.limits = limit
         m.errordef = errordef        
         if error is not None:
@@ -930,6 +929,7 @@ class SceneFitter(object):
         except RuntimeError:
             warnings.warn("migrad() is not valid.")
             return None
+        
         except ValueError:
             warnings.warn("migrad() is not valid.")
             return None

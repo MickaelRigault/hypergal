@@ -34,7 +34,6 @@ import numpy as np
 from pymage import panstarrs 
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from pymage import panstarrs
 from astropy import constants
 from hypergal import geometry_tool as geotool
 import geopandas
