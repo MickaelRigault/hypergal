@@ -169,7 +169,6 @@ class Overlay( object ):
         self._geoparam_in   = {**{k:None for k in self.GEOMETRY_PARAMETERS},   **geoparam_in}
         self._geoparam_comp = {**{k:None for k in self.GEOMETRY_PARAMETERS}, **geoparam_comp}
         if reload_poly:
-            print("__init__ reloading")
             self.change_in(reload=True)            
             self.change_comp(reload=True)
             
@@ -344,9 +343,7 @@ class Overlay( object ):
                 new_param = {}
 
         new_geoparam = {**self._geoparam_in, **new_param}
-        print(new_geoparam)
         transform_params = {k:v for k,v in new_geoparam.items() if k in self.PARAMETER_NAMES}
-        print(transform_params)
         new_mpoly = transform_geometry(self.mpoly_in_orig, **transform_params)
         
         self.set_multipolygon(new_mpoly, "in", is_orig=False)

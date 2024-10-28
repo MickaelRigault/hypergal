@@ -29,11 +29,15 @@ conda activate hypergal
 
 2. Install the basic python packages
 ```bash
-conda install numpy scipy pandas matplotlib dask 
+conda install numpy scipy pandas matplotlib dask
 ```
 
+3. Install the forge dependencies (sep may downgrade numpy < v.2, that is ok).
+```bash
+conda install -c conda-forge sep sncosmo
+```
 
-3. Download Cigale and install it.
+4. Download Cigale and install it.
 
 In doubt, please follow the specified Cigale instructions: [https://cigale.lam.fr/](cigale.lam.fr)
 - Download the latest cigale from
@@ -52,7 +56,7 @@ and
 pip install .
 ```
 
-4. Install hypergal
+5. Install hypergal
 ```bash
 pip install hypergal
 ```

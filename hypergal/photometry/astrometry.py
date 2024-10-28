@@ -1,6 +1,94 @@
 
 import numpy as np
-from ztfimg.astrometry import WCSHolder, WCS
+from astropy.wcs import WCS as astropyWCS
+
+
+class WCSHolder( object ):
+
+    # =============== #
+    #  Methods        #
+    # =============== #
+    # --------- #
+    #  LOADER   #
+    # --------- #        
+    def load_wcs(self, header, pointingkey=["RA","DEC"]):
+        """ """
+        # - wcs
+        self.set_wcs( astropyWCS(header), pointingkey=pointingkey)
+        
+        # - pointing        
+        pra, pdec = header.get(pointingkey[0], None), header.get(pointingkey[1], None)
+        if pra is None or pdec is None:
+            return None
+            
+        from astropy import coordinates, units
+        sc = coordinates.SkyCoord(pra, pdec, unit=(units.hourangle, units.deg))
+
+        self.set_pointing(sc.ra.value, sc.dec.value)
+        
+    # --------- #
+    #  SETTER   #
+    # --------- #
+    def set_wcs(self, wcs, pointingkey=["RA","DEC"]):
+        """ """
+        self._wcs = wcs
+
+    def set_pointing(self, ra, dec):
+        """ """
+        self._pointing = ra, dec
+
+    # --------- #
+    #  GETTER   #
+    # --------- #
+    # --------- #
+    #  Convert  #
+    # --------- #
+
+    # xy
+    def xy_to_radec(self, x, y, reorder=True):
+        """ get sky ra, dec [in deg] coordinates given the (x,y) quadrant positions  """
+        if reorder and hasattr(self, "shape"):
+            x = self.shape[1] -x -1 # starts at 0
+            y = self.shape[0] -y -1 # starts at 0
+                        
+        return self.wcs.all_pix2world(np.asarray([np.atleast_1d(x),
+                                                  np.atleast_1d(y)]).T,
+                                      0).T
+
+    # radec
+    def radec_to_xy(self, ra, dec, reorder=True):
+        """ get the (x,y) quadrant positions given the sky ra, dec [in deg] coordinates """
+        
+        x, y = self.wcs.all_world2pix(np.asarray([np.atleast_1d(ra),
+                                                  np.atleast_1d(dec)]).T,
+                                      0).T
+        if reorder and hasattr(self, "shape"):
+            x = self.shape[1] -x -1 # starts at 0
+            y = self.shape[0] -y -1 # starts at 0
+
+        return np.stack([x, y])
+
+    # =============== #
+    #  Properties     #
+    # =============== #
+    @property
+    def wcs(self):
+        """ """
+        if not hasattr(self, "_wcs"):
+            return None
+        return self._wcs
+
+    def has_wcs(self):
+        """ """
+        return self.wcs is None
+        
+    @property
+    def pointing(self):
+        """ requested telescope pointing [in degree] """
+        if not hasattr(self, "_pointing"):
+            return None
+            
+        return self._pointing
 
 
 
@@ -38,8 +126,12 @@ def get_source_ellipses(sourcedf, sourcescale=5, system="xy",
     from matplotlib.patches import Ellipse, Polygon
     
     # = Baseline xy
+    
     if system in ["xy", "pixels", "pix","pixel"]:
-        return [Ellipse((d.x,d.y), d.a*sourcescale, d.b*sourcescale, d.theta*180/np.pi, **kwargs)
+        return [ Ellipse( xy=(d.x,d.y),
+                          width=d.a*sourcescale,
+                          height=d.b*sourcescale,
+                          angle=d.theta*180/np.pi)
                 for d in sourcedf.itertuples()]
     
     # RA, Dec
