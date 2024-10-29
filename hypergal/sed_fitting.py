@@ -25,6 +25,7 @@ __author__ = 'Jeremy Lezmy <lezmy@ipnl.in2p3.fr>'
 __date__ = '2021/01/21 14:40:25'
 __adv__ = 'SED_Fitting.py'
 
+from pathlib import Path
 import os
 import sys
 import datetime
@@ -766,7 +767,7 @@ def command_cigale(command, file_path=None):
     else:
         mp.set_start_method('spawn', force=True)
 
-    config = Configuration(configfile)
+    config = Configuration(Path(configfile))
 
     if command == 'init':
         init(config)

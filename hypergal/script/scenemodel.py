@@ -61,7 +61,7 @@ def ab_lines(z):
     return(z*all_ab + all_ab)
 
 
-class DaskScene(DaskHyperGal):
+class DaskScene( DaskHyperGal ):
 
     @classmethod
     def compute_targetcubes(cls, name, client, cubefiles_=None, contains=None, date_range=None, verbose=False, ignore_astrom=True, manual_radec=None,

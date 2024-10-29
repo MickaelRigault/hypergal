@@ -31,7 +31,7 @@ def remove_out_spaxels(cube, overwrite=False):
         return cube
 
 
-class DaskHyperGal(base.DaskCube):
+class DaskHyperGal( base.DaskCube ):
 
     @classmethod
     def get_sourcecubes(cls, cubefile, radec, spxy=None, binfactor=2,
@@ -42,14 +42,15 @@ class DaskHyperGal(base.DaskCube):
         """ """
         #
         # Cubes
-        sedm_cube = cls.get_calibrated_cube(
-            cubefile, hgfirst=hgfirst, as_wcscube=True, radec=radec, spxy=spxy, apply_byecr=apply_byecr)
-        cutouts = cls.get_cutout(
-            radec=radec, binfactor=2, filters=filters, size=size)
+        sedm_cube = cls.get_calibrated_cube(cubefile, hgfirst=hgfirst,
+                                            as_wcscube=True, radec=radec,
+                                            spxy=spxy, apply_byecr=apply_byecr)
+        
+        cutouts = cls.get_cutout(radec=radec, binfactor=2, filters=filters, size=size)
+        
         #
         # cout_cube->Source & cube
-        sources = cutouts.extract_sources(filter_=source_filter, thres=source_thres,
-                                          savefile=None)
+        sources = cutouts.extract_sources(filter_=source_filter, thres=source_thres, savefile=None)
         cout_cube = cutouts.to_cube(binfactor=binfactor)
         #
         # get sources cube
@@ -109,6 +110,7 @@ class DaskHyperGal(base.DaskCube):
         prop_cutout = dict(filters=filters, client=client_dl)
         if cubefile is not None:
             return delayed(panstarrs.PS1CutOuts.from_sedmfile)(cubefile, size=size, **prop_cutout)
+        
         if radec is not None:
             return delayed(panstarrs.PS1CutOuts.from_radec)(*radec, size=size, **prop_cutout)
 
