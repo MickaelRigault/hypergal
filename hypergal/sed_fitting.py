@@ -750,6 +750,7 @@ def command_cigale(command, file_path=None):
     configfile=''
     if file_path != None:
         configfile += file_path
+        
     configfile += 'pcigale.ini' #The configfile MUST have this name.
 
     if sys.version_info[:2] < (3, 6):
@@ -767,7 +768,7 @@ def command_cigale(command, file_path=None):
     else:
         mp.set_start_method('spawn', force=True)
 
-    config = Configuration(Path(configfile))
+    config = Configuration( Path(configfile) )
 
     if command == 'init':
         init(config)

@@ -114,7 +114,8 @@ class SEDFitter():
             self._idx_used = None
             return
 
-        df_threshold = df.loc[idx].copy()
+        df_threshold = df.loc[idx].copy() # expected Cigale naming convetion below.
+        df_threshold = df_threshold.rename({l:l.replace("ps1","PAN-STARRS") for l in df.columns}, axis=1)
         self.set_input_sedfitter(df_threshold)
 
         if tmp_inputpath is None:
@@ -246,7 +247,7 @@ class SEDFitter():
             return True
 
 
-class Cigale(SEDFitter):
+class Cigale( SEDFitter ):
 
     FITTER_NAME = "cigale"
 
@@ -277,6 +278,7 @@ class Cigale(SEDFitter):
             self._working_dir = working_dir
 
         self._cubeouts = cubeouts
+        
     # ============= #
     #  Methods      #
     # ============= #
@@ -329,7 +331,9 @@ class Cigale(SEDFitter):
             raise TypeError(
                 "the given cube is not a cutout cube, no FILTER{i} entries in the header")
 
+        # actual naming convention expected by cigale v2022+
         cigale_bands = [b.replace(".", "_") for b in bands]
+        
         #
         # Build the input dataframe
         pdict = cubeouts.to_pandas()
@@ -337,8 +341,7 @@ class Cigale(SEDFitter):
         df = pandas.concat(
             {"data": pdict["data"], "variance": pdict["variance"]}, )
 
-        df = pdict["data"].rename({k: v for k, v in enumerate(
-            cigale_bands)}, axis=1)  # correct column names
+        df = pdict["data"].rename({k: v for k, v in enumerate(cigale_bands)}, axis=1)  # correct column names
         df_err = pandas.DataFrame(np.sqrt(pdict["variance"].values), index=df.index,
                                   columns=[k+"_err" for k in df.columns])  # errors and not variance
         #
@@ -356,6 +359,9 @@ class Cigale(SEDFitter):
         df = df.merge(df_err, right_index=True,
                       left_index=True)  # combined them
 
+        ## change the naming convention of the filters:
+        #df = df.rename({k:k.replace("ps1", "PAN-STARRS") for k in cigale_bands}, axis=1)
+        
         return cls(dataframe=df, redshift=redshift, snr=snr,
                    tmp_inputpath=tmp_inputpath,
                    initiate=initiate, ncores=ncores, working_dir=working_dir,
@@ -414,6 +420,7 @@ class Cigale(SEDFitter):
         self.set_nb_process(cores)
         config['analysis_method'] = 'pdf_analysis'
         config['cores'] = self._nb_process
+        config['bands'] = "ps1_g, ps1_r, ps1_i, ps1_z, ps1_y"
         config.write()
 
         utils.command_cigale('genconf')
@@ -429,8 +436,7 @@ class Cigale(SEDFitter):
             else:
                 config = utils.update_config(config, params)
 
-        config['sed_modules_params'][[k for k in config['sed_modules_params'].keys(
-        ) if 'dustatt' in k][0]]['filters'] = ' & '.join(ele for ele in config['bands'] if ('err' not in ele))
+        config['sed_modules_params'][ [k for k in config['sed_modules_params'].keys() if 'dustatt' in k][0]]['filters'] = ' & '.join(ele for ele in config['bands'] if ('err' not in ele))
 
         config['analysis_params']['variables'] = ['sfh.sfr']
         config.write()

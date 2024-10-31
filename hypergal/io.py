@@ -110,7 +110,7 @@ def get_target_info(name, contains=None, date_range=None, ignore_astrom=True, ve
     cubefiles = sedm.download_from_whatdata(
         df, 'cube', contains=contains, client=client, return_filename=True)
     astrmfiles = sedm.download_from_whatdata(
-        df, 'astrom', contains=contains, client=client, return_filename=True)
+        df, 'astrom', contains=contains, client=client, check_file=False, return_filename=True)
     hexagrid = sedm.download_from_whatdata(
         df, 'HexaGrid', contains=None, client=client, return_filename=True)
     #cubefiles  = squery.get_target_cubes(name, contains=contains, client=client)

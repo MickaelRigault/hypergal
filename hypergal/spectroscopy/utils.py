@@ -16,6 +16,7 @@ try:
 except:
     warnings.warn("Cigale isn't installed on this machine")
 
+from pathlib import Path
 import pyifu
 import collections.abc
 
@@ -56,7 +57,7 @@ def command_cigale(command, file_path=None):
     else:
         mp.set_start_method('spawn', force=True)
 
-    config = Configuration(configfile)
+    config = Configuration( Path(configfile) )
 
     if command == 'init':
         init(config)
