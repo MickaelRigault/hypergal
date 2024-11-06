@@ -34,7 +34,7 @@ conda install numpy scipy pandas matplotlib dask
 
 3. Install the forge dependencies (sep may downgrade numpy < v.2, that is ok).
 ```bash
-conda install -c conda-forge sep sncosmo
+conda install -c conda-forge sep sncosmo astropy
 ```
 
 4. Download Cigale and install it.
@@ -43,9 +43,8 @@ In doubt, please follow the specified Cigale instructions: [https://cigale.lam.f
 - Download the latest cigale from
   [here](https://gitlab.lam.fr/cigale/cigale/-/archive/v2022.1/cigale-v2022.1.tar.gz)
 - uncompress the .tar.gz and go inside the cigale repo
-- Install Astropy
 ```bash
-pip install astropy
+pip install 
 ```
 - and run (takes some time)
 ```bash
@@ -61,8 +60,9 @@ pip install .
 pip install hypergal
 ```
 
-*** 
-
+***
+WARNING FOLLOWING INSTRUCTIONS ARE BEING UPDATED
+***
 instructions below could be deprecated. More to come
 
 # Main script: ```run_hypergal.py```
