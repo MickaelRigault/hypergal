@@ -37,6 +37,49 @@ DEFAULT_CIGALE_MODULES = ['sfhdelayed', 'bc03', 'nebular',
 CIGALE_CONFIG_PATH = os.path.join(_PACKAGE_ROOT, 'config/cigale.json')
 
 
+
+def run_sedfitter(cube_cutout, redshift, working_dir,
+                  sedfitter="cigale", ncores=1, lbda=None,
+                  saveplot_rmspull=None, saveplot_intcube=None, 
+                  sn_only=False,
+                  fileout = None, 
+                  **kwargs):
+    """ """
+    if lbda is None:
+        from pysedm.sedm import SEDM_LBDA
+        lbda = SEDM_LBDA
+
+    tmp_inputpath = os.path.join(working_dir, "input_sedfitting.txt")
+
+    if sedfitter == "cigale":
+        sfitter = Cigale.from_cube_cutouts(cube_cutout, redshift,
+                                                          tmp_inputpath=tmp_inputpath,
+                                                          initiate=True,
+                                                          working_dir=working_dir,
+                                                          ncores=ncores, sn_only=sn_only, 
+                                                          **kwargs)
+        
+    else:
+        raise NotImplementedError(
+            f"Only the cigale sed fitted has been implemented. {sedfitter} given")
+            
+    # run sedfit
+    bestmodel_dir = sfitter.run()  # bestmodel_dir trick is for dask
+
+    # get the results
+    specdata, lbda = sfitter.get_sample_spectra(bestmodel_dir=bestmodel_dir,
+                                              lbda_sample=lbda,
+                                              saveplot_rmspull=saveplot_rmspull,
+                                              saveplot_intcube=saveplot_intcube)
+    
+    intcube = cube_cutout.get_new(newdata=specdata, newlbda=lbda, newvariance="None")
+    if fileout:
+        intcube.to_hdf(fileout)
+    
+    return intcube
+
+
+
 class SEDFitter():
 
     FITTER_NAME = "unknown"

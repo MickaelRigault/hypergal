@@ -4,7 +4,7 @@ import numpy as np
 
 from ..photometry.astrometry import WCSHolder, get_source_ellipses
 from pyifu.spectroscopy import Cube
-
+from pysedm import get_sedmcube
 
 def sedmcube_to_wcscube(cube, radec=None, spxy=None, store_data=False, get_filename=False):
     """ """
@@ -17,6 +17,70 @@ def sedmcube_to_wcscube(cube, radec=None, spxy=None, store_data=False, get_filen
         return wcscube.filename
 
     return wcscube
+
+
+def calibrate_cube(cube, fluxcalfile, airmass=None, backup_airmass=1.1, store_data=False):
+    """ """
+    from pysedm import fluxcalibration
+    import os
+    if airmass is None:
+        airmass = cube.header.get("AIRMASS", backup_airmass)
+
+    fluxcal = fluxcalibration.load_fluxcal_spectrum(fluxcalfile)
+    cube.scale_by(fluxcal.get_inversed_sensitivity(cube.header.get("AIRMASS", backup_airmass)),
+                  onraw=False)
+    cube.set_filename(cube.filename.replace("e3d", "cale3d"))
+    header = dict(cube.header) | {'FLUXCAL': f'{os.path.basename(fluxcalfile)}'}
+    cube.set_header(header)
+    if store_data:
+        cube.writeto(cube.filename)
+        
+    return cube
+
+
+def get_calibrated_cube(cubefile, fluxcalfile=None, apply_byecr=True,
+                        store_data=False, radec=None, spxy=None, 
+                        **kwargs):
+    """ """
+    from astropy.io import fits
+    #
+    # Check input
+    #
+    ## flux calibrated or not ?
+    try: 
+        is_fluxcal = fits.getval(cubefile, "FLUXCAL") is not None
+    except:
+        is_fluxcal = False
+        
+    ## wcs or not ?
+    try: 
+        has_wcs = fits.getval(cubefile, "CRPIX1") == 1
+    except:
+        has_wcs = False
+
+    if is_fluxcal and has_wcs:
+        return WCSCube(cubefile)
+
+    #
+    # Build the flux calibrated cube with WCS solution.
+    #    
+    ## Not flux calibrated ? Do so.
+    if not is_fluxcal:
+        from pysedm.io import fetch_nearest_fluxcal
+        cube_notcalibrated = get_sedmcube(cubefile, apply_byecr=apply_byecr)
+        fluxcalfile = fetch_nearest_fluxcal( mjd=cube_notcalibrated.header.get("MJD_OBS") )
+        cube = calibrate_cube(cube_notcalibrated, fluxcalfile, store_data=store_data, **kwargs)
+    else:
+        cube = get_sedmcube(cubefile)
+
+    ## No wcs solution ? build one
+    if not has_wcs:
+        cube = WCSCube.from_sedmcube(cube, radec=radec, spxy=spxy)
+    else:
+        cube = WCSCube(cubefile)
+
+    return cube
+
 
 
 class WCSCube(Cube, WCSHolder):
@@ -36,12 +100,16 @@ class WCSCube(Cube, WCSHolder):
         cubefile: string
             Filename of the cube to load.
 
+        radec: (float, float)
+            coordinates (in degree) of the target of insterest.
+
+        spxy: (float, float)
+            coordinates (in spaxels) of the target of insterest.
+
         Returns
         -------
-        WCSCube object
-
+        WCSCube
         """
-        from pysedm import get_sedmcube
         return cls.from_sedmcube(get_sedmcube(cubefile), radec, spxy)
 
     @classmethod
@@ -64,11 +132,6 @@ class WCSCube(Cube, WCSHolder):
 
         try:
             wcsdict = astrometry.get_wcs_dict(cube.filename, radec, spxy)
-            #astrom = astrometry.Astrometry(cube.filename)
-            # if np.logical_or(*abs(astrom.get_target_coordinate()) > (20, 20)):
-            #    warnings.warn(
-            #        f'Astrometry out of the field of view in {cube.filename} at (x,y) = {astrom.get_target_coordinate()}, build of the astrometry assuming radec={radec} at (x,y)=(0,0)')
-            #    wcsdict = astrometry.get_wcs_dict(cube.filename, radec, (0, 0))
         except OSError:
             warnings.warn(
                 f'No Astrometry file for {cube.filename} , build of the astrometry assuming radec={radec} at (x,y)=(0,0)')
@@ -91,9 +154,11 @@ class WCSCube(Cube, WCSHolder):
             nheader = {k: cube.header[k] for k in cube.header.keys()}
         else:
             nheader = {k: cube.header[k] for k in keys if k in cube.header}
+            
         cube.set_header(fits.Header({**nheader, **wcsdict}))
+
         from .. import __version__ as hgvs
-        header = {**dict(cube.header), **dict({'HYPERGAL': f'{hgvs}'})}
+        header = dict(cube.header) | {'HYPERGAL': f'{hgvs}'}
         cube.set_header(header)
 
         this = cls.from_data(data=cube.data,

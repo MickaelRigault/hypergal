@@ -57,6 +57,7 @@ class DaskHyperGal( base.DaskCube ):
         wcsin = cout_cube.wcs
         if sn_only:
             target_radius = 8
+            
         if use_extsource:
             source_coutcube = cout_cube.get_extsource_cube(sourcedf=sources, wcsin=wcsin, radec=radec,
                                                            sourcescale=scale_cout, radius=target_radius*DEFAULT_SCALE_RATIO, boundingrect=True, sn_only=sn_only)
@@ -82,27 +83,17 @@ class DaskHyperGal( base.DaskCube ):
     #   INTERNAL      #
     # =============== #
 
-    @classmethod
-    def get_calibrated_cube(cls, cubefile, fluxcalfile=None, hgfirst=True, apply_byecr=True,
-                            store_data=False, get_filename=False, as_wcscube=True, radec=None, spxy=None, **kwargs):
+    @staticmethod
+    def get_calibrated_cube(cubefile, fluxcalfile=None,
+                                 radec=None, spxy=None,
+                            hgfirst=True, apply_byecr=True,
+                            store_data=False, get_filename=False, as_wcscube=True, **kwargs):
         """ """
-        cube = delayed(remove_out_spaxels)(super().get_calibrated_cube(cubefile, fluxcalfile=fluxcalfile, hgfirst=hgfirst,
-                                           apply_byecr=apply_byecr,
-                                           get_filename=False, **kwargs))
-        if not as_wcscube:
-            return cube
-
-        #header = {**dict(cube.header), **dict({'Hypergal_version': f'{hgvs}'})}
-        # cube.set_header(header)
-        cube.header.update(dict({'HYPERGAL': f'{hgvs}'}))
-
-        if get_filename and not store_data:
-            warnings.warn(
-                "you requested get_filename without storing the data (store_data=False)")
-
-        return delayed(spectrobasics.sedmcube_to_wcscube)(cube, radec=radec, spxy=spxy,
-                                                          store_data=store_data,
-                                                          get_filename=get_filename)
+        warnings.warn(f"{hgfirst=}, {get_filename=}, {as_wcscube=} are ignored.")
+        return delayed(spectrobasics.get_calibrated_cube)(cubefile,
+                                                            fluxcalfile=fluxcalfile, apply_byecr=apply_byecr,
+                                                            radec=radec, spxy=spxy,
+                                                            store_data=store_data, **kwargs)
 
     @staticmethod
     def get_cutout(radec=None, cubefile=None, client_dl=None, filters=None, size=180, **kwargs):

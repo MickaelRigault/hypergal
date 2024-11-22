@@ -31,8 +31,8 @@ import sys
 import datetime
 import numpy as np
 import pysedm
-from pylephare import lephare, spectrum
-from pylephare import io as ioleph
+#from pylephare import lephare, spectrum
+#from pylephare import io as ioleph
 import pandas as pd
 from shapely import geometry
 import shapely
@@ -67,6 +67,17 @@ PS1_FILTER_LEPHARE_err=['ps1.g.err','ps1.r.err', 'ps1.i.err', 'ps1.z.err', 'ps1.
 
 ORDER = "ugrizy"
 POS = {c:p for (p, c) in enumerate(ORDER)}
+
+
+
+
+
+
+
+
+
+print("DEPRECATED see Spectroscopy")
+
 
 
 class Lephare_SEDfitting():

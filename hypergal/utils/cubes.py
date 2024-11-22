@@ -7,6 +7,28 @@ from ..scene.basics import PointSource, BackgroundCurved
 from pysedm.dask.base import DaskCube
 
 
+# ======================= #
+#  Needed by hypergal.py  #
+# ======================= #
+def remove_out_spaxels(cube, overwrite=False):
+    """ """
+    spx_map = cube.spaxel_mapping
+    ill_spx = np.argwhere(np.isnan(list(spx_map.values()))).T[0]
+    
+    if len(ill_spx) > 0:
+        cube_fix = cube.get_partial_cube(
+            [i for i in cube.indexes if i not in cube.indexes[ill_spx]], np.arange(len(cube.lbda)))
+        if overwrite:
+            cube_fix.writeto(cube.filename)
+        return cube_fix
+    else:
+        return cube
+
+
+# ======================= #
+# Internal object         #
+# ======================= #
+
 class CubeModelBuilder(object):
     """ """
 

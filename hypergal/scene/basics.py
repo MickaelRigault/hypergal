@@ -5,7 +5,8 @@ import numpy as np
 
 SEDM_SCALE = 0.558
 PS_SCALE = 0.25
-DEFAULT_SCALE_RATIO = SEDM_SCALE/PS_SCALE
+SEDM_to_PS1_SCALERATIO = SEDM_SCALE/PS_SCALE
+DEFAULT_SCALE_RATIO = SEDM_to_PS1_SCALERATIO
 
 
 # ================= #
@@ -358,7 +359,7 @@ class SliceScene(_BaseScene_):
     # ============= #
     def load_overlay(self,  xy_in=None, xy_comp=None,
                      rotation_in=None, rotation_comp=None,
-                     scale_in=1/DEFAULT_SCALE_RATIO, scale_comp=1):
+                     scale_in=1/SEDM_to_PS1_SCALERATIO, scale_comp=1):
         """ 
         Load and set the overlay object from slice_in and slice_out (see hypergal/utils/geometry.Overlay() ).
 
@@ -681,7 +682,7 @@ class CubeScene(SliceScene):
     # ============= #
     def load_overlay(self,  xy_in=None, xy_comp=None,
                      rotation_in=None, rotation_comp=None,
-                     scale_in=1/DEFAULT_SCALE_RATIO, scale_comp=1):
+                     scale_in=1/SEDM_to_PS1_SCALERATIO, scale_comp=1):
         """ 
         Load and set the overlay object from slice_in and slice_out (see hypergal/utils/geometry.Overlay() ).
 

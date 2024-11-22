@@ -9,6 +9,17 @@ from .basics import CutOut
 
 from astrobject.instruments import panstarrs
 
+def get_cutout(radec=None, cubefile=None, client_dl=None, filters=None, size=180):
+    """ """
+    prop_cutout = dict(filters=filters, client=client_dl)
+    if cubefile is not None:
+        return PS1CutOuts.from_sedmfile(cubefile, size=size, **prop_cutout)
+    
+    if radec is not None:
+        return PS1CutOuts.from_radec(*radec, size=size, **prop_cutout)
+
+    raise ValueError("cubefile or radec must be given. Both are None")
+
 
 def query_panstarrs_metadata(ra, dec, size=180, filters="grizy", type="stack"):
     """ Query ps1filenames.py service to get a list of images

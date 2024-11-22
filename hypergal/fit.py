@@ -4,10 +4,175 @@ import pandas
 import numpy as np
 from scipy import stats
 from iminuit import Minuit
-
+from pysedm.sedm import SEDM_LBDA
+    
 from . import psf
 from .spectroscopy import adr as spectroadr
 
+
+def fit_cube(cube_sedm, cube_intr, radec, nslices,
+             dasked=False,
+             saveplot_structure=None,
+             mslice_param=None, initguess=None,
+             psfmodel="Gauss2D", pointsourcemodel="GaussMoffat2D",
+             curved_bkgd=True,
+             fix_pos=False, fix_psf=False,
+             fix_params=['scale', 'rotation'], limit_pos=None, 
+             host_only=False, sn_only=False, 
+             kind=None, onlyvalid=False):
+    """ top level function used by hypergal
+    """
+    from .scene.basics import PointSource    
+    if dasked:
+        import dask
+        _fit_slices_projection = dask.delayed(SceneFitter.fit_slices_projection)
+        PointSource = dask.delayed(PointSource)
+    else:
+        _fit_slices_projection = SceneFitter.fit_slices_projection
+
+    
+    #
+    # And the default positions
+    xy_in = cube_intr.radec_to_xy(*radec).flatten()
+    xy_comp = cube_sedm.radec_to_xy(*radec).flatten()
+
+    mpoly = cube_sedm.get_spaxel_polygon(format='multipolygon')
+
+    # --------------------- #
+    # Loop over the slices  #
+    # --------------------- #
+    best_fits = {}
+
+    for i_ in range(nslices):
+        # the slices
+        slice_in = cube_intr.get_slice(index=i_, slice_object=True)
+        slice_comp = cube_sedm.get_slice(index=i_, slice_object=True)
+        # mpoly = delayed(slice_comp.get_spaxel_polygon)(
+        #    format='multipolygon')
+        gm = psf.gaussmoffat.GaussMoffat2D(**{'alpha': 3, 'eta': 0.8})
+        ps = PointSource(gm, mpoly)
+
+        if mslice_param is not None:
+            guess = mslice_param.get_guess(slice_in.lbda, squeeze=True)
+        else:
+            guess = {}
+
+        if initguess is not None:
+            guess.update(initguess)
+
+        savefile = None if saveplot_structure is None else (
+            saveplot_structure + f"{i_}.pdf")
+
+        #
+        if limit_pos is not None:
+            limit = {'pos_limits': limit_pos}
+        else:
+            limit = None
+            
+        # Update the guess
+        if fix_pos:
+            fix_params += ["xoff", "yoff"]
+
+        if fix_psf:
+            if psfmodel == "Gauss2D":
+                fix_params += ["a", "b", "sigma"]
+            else:
+                raise NotImplementedError(
+                    "Only Gauss2D psf implemented for fixing parameters")
+        # fit the slices
+        if type(psfmodel) is str:
+            use_pdfmodel = getattr(psf, psfmodel)()
+        elif type(psfmodel.__class__) is type:
+            use_pdfmodel = psfmodel() # not an instance
+        else: # an instance
+            use_pdfmodel = psfmodel.__class__() # empty copy
+            
+        this_slicefit = _fit_slices_projection(slice_in, slice_comp,
+                                                   psf=use_pdfmodel,
+                                                   savefile=savefile,
+                                                   whichscene='SceneSlice',
+                                                   pointsource=ps,
+                                                   curved_bkgd=curved_bkgd,
+                                                   xy_in=xy_in,
+                                                   xy_comp=xy_comp,
+                                                   guess=guess,
+                                                   limit=limit,
+                                                   fix_params=fix_params,
+                                                   add_lbda=True, priors=Priors(),
+                                                   host_only=host_only, sn_only=sn_only,
+                                                   kind=kind, onlyvalid=onlyvalid)
+        # persist
+        if dasked:
+            this_slicefit = this_slicefit.persist()
+            
+        best_fits[i_] = this_slicefit
+
+    # ------------------------ #
+    # Returns the new bestfit  #
+    # ------------------------ #
+    if dasked:
+        return dask.delayed(pandas.concat)(best_fits)
+    
+    return pandas.concat(best_fits)
+
+
+
+def slicefit_to_target_spec(slicefit, header, savefile=None):
+    """ convert slicefit output into the target spectrum"""
+    from pyifu.spectroscopy import get_spectrum
+    
+    specval = slicefit.xs('ampl_ps', level=1)['values'].values
+    specerr = slicefit.xs('ampl_ps', level=1)['errors'].values
+    speclbda = slicefit.xs('lbda', level=1)['values'].values
+    speccoef = slicefit.xs('norm_comp', level=1)['values'].values
+    return get_spectrum(speclbda, specval*speccoef/header['EXPTIME'], (specerr*speccoef/header['EXPTIME'])**2, header)
+
+
+
+
+def build_hg_cubes(cube_int, cube_sedm, radec, mslice_meta, mslice_final,
+                       dasked=False,
+                    psfmodel='Gauss2D', pointsourcemodel="GaussMoffat2D", 
+                    scenemodel="SceneSlice", 
+                    curved_bkgd=False, nslices=len(SEDM_LBDA), 
+                    sn_only=False, host_only=False):
+    """ """
+    from .utils.cubes import CubeModelBuilder
+    if dasked:
+        import dask
+        CubeModelBuilder = dask.delayed(CubeModelBuilder)
+    
+    xy_in = cube_int.radec_to_xy(*radec).flatten()
+    cubebuilder = CubeModelBuilder(cube_in=cube_int, cube_comp=cube_sedm,
+                                    mslice_meta=mslice_meta, mslice_final=mslice_final,
+                                    xy_in=xy_in, pointsourcemodel=pointsourcemodel,
+                                    scenemodel=scenemodel,
+                                    sn_only=sn_only, host_only=host_only, curved_bkgd=curved_bkgd)
+
+    hm = []
+    psm = []
+    bkgm = []
+    for index_ in range(nslices):
+        dat = cubebuilder.get_modelslice(index_, as_slice=False, split=True)
+        # because of dask
+        hm.append(dat[0])
+        psm.append(dat[1])
+        bkgm.append(dat[2])
+
+    hostmodel = cube_sedm.get_new(newdata=hm, newvariance="None")
+    psmodel = cube_sedm.get_new(newdata=psm, newvariance="None")
+    bkgdmodel = cube_sedm.get_new(newdata=bkgm, newvariance="None")
+
+    return hostmodel, psmodel, bkgdmodel
+
+
+def get_sourcedf(radec, cubefile, size=180, client=None):
+    """ """
+    from .script.daskbasics import DaskHyperGal
+    cutout = DaskHyperGal.get_cutout(radec, None, None, ['ps1.i'], size=size)
+    sources = cutout.extract_sources(filter_='ps1.i', thres=20, savefile=None)
+    return sources
+    
 # ===================== #
 #                       #
 #      PRIORS           #

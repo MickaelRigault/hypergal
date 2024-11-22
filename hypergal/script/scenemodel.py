@@ -102,7 +102,7 @@ class DaskScene( DaskHyperGal ):
     def remove_out_spaxels(cube, overwrite=False):
 
         spx_map = cube.spaxel_mapping
-        ill_spx = np.argwhere(np.isnan(list(spx_map.values()))).T[0]
+        ill_spx = np.argwhere(np.isnan( list(spx_map.values())) ).T[0]
         if len(ill_spx) > 0:
             cube_fix = cube.get_partial_cube(
                 [i for i in cube.indexes if i not in cube.indexes[ill_spx]], np.arange(len(cube.lbda)))
@@ -112,31 +112,29 @@ class DaskScene( DaskHyperGal ):
         else:
             return cube
 
-    def compute_single(self, cubefile, radec, redshift,
+    def compute_single(self, cubefile, radec, redshift, xy=None,
+                       # additional points
                        hgfirst=True, binfactor=2,
                        filters=["ps1.g", "ps1.r", "ps1.i", "ps1.z", "ps1.y"],
                        source_filter="ps1.r", source_thres=2,
                        scale_cout=15, scale_sedm=10, rmtarget=None,
                        lbda_range=[5000, 8500], nslices=6,
                        filters_fit=["ps1.g", "ps1.r", "ps1.i", "ps1.z"],
-                       psfmodel="Gauss2D", pointsourcemodel="GaussMoffat2D", ncores=1, testmode=False, xy_ifu_guess=None,
+                       psfmodel="Gauss2D", pointsourcemodel="GaussMoffat2D", ncores=1, testmode=False,
                        prefit_photo=True, use_exist_intcube=True, overwrite_workdir=True, use_extsource=True,
                        split=True, curved_bkgd=True, build_astro=True, target_radius=10,
                        host_only=False, sn_only=False, apply_byecr=True, limit_pos=None, suffix_plot=None, suffix_savedata='',
                        size=180, intcube_to_use=None):
         """ """
         info = io.parse_filename(cubefile)
-        cubeid = info["sedmid"]
         name = info["name"]
         filedir = os.path.dirname(cubefile)
         
         # SED
         if suffix_plot is not None:
-            working_dir = os.path.join(os.path.dirname(
-                cubefile), f"tmp_{cubeid}" + '_' + suffix_plot)
+            working_dir = os.path.join(filedir, f"tmp_{info['sedmid']}_{suffix_plot}")
         else:
-            working_dir = os.path.join(
-                os.path.dirname(cubefile), f"tmp_{cubeid}")
+            working_dir = os.path.join(filedir, f"tmp_{info['sedmid']}")
             
         if not use_exist_intcube and overwrite_workdir and not sn_only and os.path.isdir(working_dir):
             import shutil
@@ -146,23 +144,15 @@ class DaskScene( DaskHyperGal ):
                 print("Error: %s : %s" % (working_dir, e.strerror))
 
         # PLOTS
-        plotbase = os.path.join(filedir, "hypergal",
-                                info["name"], info["sedmid"])
+        plotbase = os.path.join(filedir, "hypergal", info["name"], info["sedmid"])
         if suffix_plot is not None:
-            plotbase = os.path.join(filedir, "hypergal",
-                                    info["name"], suffix_plot + info["sedmid"])
+            plotbase = os.path.join(filedir, "hypergal", info["name"], suffix_plot + info["sedmid"])
+            
         dirplotbase = os.path.dirname(plotbase)
 
-        #dirspec = os.path.join( SEDMLOCAL_BASESOURCE, "hypergal_output", "target_spec", name)
-        #dirhost = os.path.join( SEDMLOCAL_BASESOURCE, "hypergal_output", "host_spec", name)
-        #dirplot = os.path.join( SEDMLOCAL_BASESOURCE, "hypergal_output", "plots", name)
-        # for dirs in [dirspec, dirhost, dirplot]:
-        #    if not os.path.isdir(dirs):
-        #        os.makedirs(dirs, exist_ok=True)
-
-        if xy_ifu_guess is not None:
+        if xy is not None:
             initguess = dict(
-                {k: v for k, v in zip(['xoff', 'yoff'], xy_ifu_guess)})
+                {k: v for k, v in zip(['xoff', 'yoff'], xy)})
         else:
             initguess = None
 
@@ -177,15 +167,19 @@ class DaskScene( DaskHyperGal ):
         # ------------ #
         # ---> Build the cutouts, and the calibrated data cube
 
-        if build_astro and xy_ifu_guess != None:
-            spxy = xy_ifu_guess
+        if build_astro and xy != None:
+            spxy = xy
         else:
             spxy = None
 
-            
-        calcube = delayed(self.remove_out_spaxels)( self.get_calibrated_cube(
-            cubefile, hgfirst=hgfirst, apply_byecr=apply_byecr, radec=radec, spxy=spxy))
 
+        # ====== #
+        full_calcube = self.get_calibrated_cube(cubefile,
+                                                hgfirst=hgfirst, apply_byecr=apply_byecr,
+                                                radec=radec, spxy=spxy)
+        
+        calcube = delayed(self.remove_out_spaxels)(full_calcube)
+        # ====== #
         source_coutcube__source_sedmcube = self.get_sourcecubes(cubefile, radec, spxy=spxy,
                                                                 binfactor=binfactor,
                                                                 filters=filters,
@@ -220,10 +214,6 @@ class DaskScene( DaskHyperGal ):
                                                 filterin=filters, filters_to_use=filters_fit,
                                                 psfmodel=psfmodel, pointsourcemodel=pointsourcemodel, guess=initguess, host_only=host_only, kind='metaslices', onlyvalid=True)
 
-            # ---> Storing <--- # 2
-            # stored.append(bestfit_cout.to_hdf(
-            #    *io.get_slicefit_datafile(cubefile, "cutout")))
-
             # ---> Get the object for future guesses || Guesser
 
             cout_ms_param = delayed(MultiSliceParameters)(bestfit_cout, cubefile=cubefile,
@@ -231,6 +221,7 @@ class DaskScene( DaskHyperGal ):
                                                           load_adr=True, load_psf=True, load_pointsource=True)
         else:
             cout_ms_param = None
+            
         #
         #   Step 1.2 Intrinsic Cube
         #
@@ -414,8 +405,8 @@ class DaskScene( DaskHyperGal ):
     #
     #
 
-    @classmethod
-    def fit_cube(cls, cube_sedm, cube_intr, radec, nslices,
+    @staticmethod
+    def fit_cube(cube_sedm, cube_intr, radec, nslices,
                  saveplot_structure=None,
                  mslice_param=None, initguess=None,
                  psfmodel="Gauss2D", pointsourcemodel="GaussMoffat2D",
@@ -611,8 +602,7 @@ class DaskScene( DaskHyperGal ):
 
         xy_in = source_coutcube.radec_to_xy(*radec).flatten()
         xy_comp = source_sedmcube_sub.radec_to_xy(*radec).flatten()
-        mpoly = delayed(source_sedmcube_sub.get_spaxel_polygon)(
-            format='multipolygon')
+        mpoly = delayed(source_sedmcube_sub.get_spaxel_polygon)(format='multipolygon')
         #
         # Get the slices
         best_fits = {}

@@ -89,7 +89,8 @@ def get_slicefit_datafile(filename, which=None, suffix=''):
 # ============ #
 
 
-def get_target_info(name, contains=None, date_range=None, ignore_astrom=True, verbose=False, client=None):
+def get_target_info(name, contains=None, date_range=None, ignore_astrom=True, verbose=False, client=None,
+                        update_pharos=True):
     """ """
     from ztfquery import sedm, fritz
     try:
@@ -105,19 +106,25 @@ def get_target_info(name, contains=None, date_range=None, ignore_astrom=True, ve
         print(f"Target {name} located at {radec} and redshift {redshift}")
 
     squery = sedm.SEDMQuery()
-    squery.update_pharosio()
+    if update_pharos:
+        squery.update_pharosio()
+        
     df = squery.get_whatdata(targets=name, date_range=date_range)
+
+
     cubefiles = sedm.download_from_whatdata(
         df, 'cube', contains=contains, client=client, return_filename=True)
     astrmfiles = sedm.download_from_whatdata(
         df, 'astrom', contains=contains, client=client, check_file=False, return_filename=True)
     hexagrid = sedm.download_from_whatdata(
         df, 'HexaGrid', contains=None, client=client, return_filename=True)
+    
     #cubefiles  = squery.get_target_cubes(name, contains=contains, client=client)
     #astrmfiles = squery.get_target_astrom(name, contains=contains, client=client)
 
     if ignore_astrom:
         return np.unique(cubefiles), radec, redshift
+    
     # Check if all cubes have an astrom
     cubeid = [parse_filename(cube_)["sedmid"] for cube_ in cubefiles]
     astrid = [parse_filename(astr_)["sedmid"] for astr_ in astrmfiles]
