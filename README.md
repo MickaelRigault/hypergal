@@ -42,10 +42,7 @@ conda install -c conda-forge sep sncosmo astropy
 In doubt, please follow the specified Cigale instructions: [https://cigale.lam.fr/](cigale.lam.fr)
 - Download the latest cigale from
   [here](https://gitlab.lam.fr/cigale/cigale/-/archive/v2022.1/cigale-v2022.1.tar.gz)
-- uncompress the .tar.gz and go inside the cigale repo
-```bash
-pip install 
-```
+- uncompress the .tar.gz and go inside the cigale repo (e.g. tar -xf cigale-v2022.1.tar.gz ; cd cigale-v2022.1)
 - and run (takes some time)
 ```bash
 python setup.py build
