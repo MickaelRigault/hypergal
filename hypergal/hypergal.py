@@ -437,6 +437,7 @@ def run_sedfitting(cubefile, radec, redshift, spxy=None,
     
     saveplot_rmspull = None# plotbase + '_' + name + '_cigale_pullrms.png'
     saveplot_intcube = None# plotbase + '_' + name + '_intcube.png'
+    
     if dasked:
         run_sedfitter = dask.delayed(run_sedfitter)
 
