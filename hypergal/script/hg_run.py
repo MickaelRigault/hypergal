@@ -24,19 +24,19 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     # ============== #
-    if args["redshift"] is None:
+    if args.redshift is None:
         raise ValueError("redshift requested")
         
-    if args["radec"] is None:
+    if args.radec is None:
         raise ValueError("radec requested")
     else:
         ra, dec = radec.split(",")
         radec = [float(ra), float(dec)]
 
     
-    hypergal.run_sedfitting(cubefile=args["filename"],
+    hypergal.run_sedfitting(cubefile=args.filename,
                             redshift=redshift, radec=radec,
-                            ncores=args["ncores"],
+                            ncores=args.ncores,
                             dasked=False)
                             
     print(f"processing {args['filename']} is Done")
