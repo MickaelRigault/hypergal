@@ -35,11 +35,12 @@ if __name__ == '__main__':
         ra, dec = args.radec.split(",")
         radec = [float(ra), float(dec)]
 
+
     
     hypergal.run_sedfitting(cubefile=args.filename,
                             redshift=redshift, radec=radec,
                             ncores=args.ncores,
                             dasked=False)
                             
-    print(f"processing {args['filename']} is Done")
+    print(f"processing {args.filename} is done")
                 
