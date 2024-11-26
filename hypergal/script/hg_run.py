@@ -30,7 +30,7 @@ if __name__ == '__main__':
     if args.radec is None:
         raise ValueError("radec requested")
     else:
-        ra, dec = radec.split(",")
+        ra, dec = args.radec.split(",")
         radec = [float(ra), float(dec)]
 
     
