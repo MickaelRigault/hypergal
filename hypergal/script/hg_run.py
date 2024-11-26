@@ -26,6 +26,8 @@ if __name__ == '__main__':
     # ============== #
     if args.redshift is None:
         raise ValueError("redshift requested")
+    else:
+        redshift = float(args.redshift)
         
     if args.radec is None:
         raise ValueError("radec requested")
