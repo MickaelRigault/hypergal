@@ -18,7 +18,7 @@ if __name__ == '__main__':
                         help="target's coordinates (deg,deg)")
 
     # ===
-    parser.add_argument("--ncores", default=5, type=int,
+    parser.add_argument("--ncores", default=1, type=int,
                         help="number of cores used for sedfitting")
 
     
