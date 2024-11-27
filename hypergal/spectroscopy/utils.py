@@ -303,7 +303,9 @@ def gauss_convolve_variable_width(a, sig, prec=10.):
         describes the varying width of the kernel
      - prec: precision argument. When higher, oversampling is more thorough
     '''
-
+    if len( np.unique(a) ) ==1: # flat
+        return a
+    
     assert (len(sig) == a.shape[-1]), '\tLast dimension of `a` must equal \
         length of `sig` (each element of a must have a convolution width)'
 

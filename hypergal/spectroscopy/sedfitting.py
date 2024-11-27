@@ -615,6 +615,7 @@ class Cigale( SEDFitter ):
 
         if not self.has_object:
             return np.repeat(self.cubeouts.data[0][np.newaxis]*0, len(lbda_sample), axis=0), lbda_sample
+        
         # find files
         if bestmodel_dir is None:
             bestmodel_dir = os.path.join(self._path_result, self._out_dir)
@@ -642,14 +643,18 @@ class Cigale( SEDFitter ):
 
             dictdout = client.compute(d_dout).result()
         else:
+            # takes ~30s
             dictdout = {k: self.cigale_as_lbda(self.read_cigale_specout(k, columns=["wavelength", "flux"]),
                                                lbda_sample, interp_kind=interp_kind, res=res)
                         for k in datafile.index}
 
+        # takes <1s
         dflux = pandas.concat(dictdout)["flux"]
 
+        
         #
         # get the data
+        #
         data = [np.zeros(len(lbda_sample)) if id_ not in datafile.index else dflux.xs(id_).values
                 for id_ in self.input_df.index]
 
@@ -684,12 +689,17 @@ class Cigale( SEDFitter ):
                         self.cubeouts.lbda), data_in, data_out, saveplot_intcube)
                 if backcurrent_dir and self._working_dir is not None:
                     os.chdir(self.currentpwd)
+                    
                 return newd.T, lbda_sample
 
+            # clien is None | This is the slowest task.
+            #
+            # takes a few minutes
+            #
             for id_ in range(newdatas.shape[0]):
-
                 newdatas[id_, :] = utils.gauss_convolve_variable_width(
                     newdatas[id_][None, ::], sig=sig, prec=100.)
+                
             if saveplot_rmspull is not None:
                 data_in, data_out = self.get_data_inout(
                     os.path.join(self.working_dir, 'out'))
@@ -703,8 +713,11 @@ class Cigale( SEDFitter ):
                     self.cubeouts.lbda), data_in, data_out, saveplot_intcube)
             if backcurrent_dir and self._working_dir is not None:
                 os.chdir(self.currentpwd)
+                
             return newdatas.T, lbda_sample
 
+
+        # Not applied lsf
         if saveplot_rmspull is not None:
             data_in, data_out = self.get_data_inout(
                 os.path.join(self.working_dir, 'out'))
