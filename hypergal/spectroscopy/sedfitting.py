@@ -38,6 +38,7 @@ CIGALE_CONFIG_PATH = os.path.join(_PACKAGE_ROOT, 'config/cigale.json')
 
 
 
+
 def run_sedfitter(cube_cutout, redshift, working_dir,
                   sedfitter="cigale", ncores=1, lbda=None,
                   saveplot_rmspull=None, saveplot_intcube=None, 
@@ -49,24 +50,15 @@ def run_sedfitter(cube_cutout, redshift, working_dir,
         from pysedm.sedm import SEDM_LBDA
         lbda = SEDM_LBDA
 
-    tmp_inputpath = os.path.join(working_dir, "input_sedfitting.txt")
-
-    if sedfitter == "cigale":
-        sfitter = Cigale.from_cube_cutouts(cube_cutout, redshift,
-                                                          tmp_inputpath=tmp_inputpath,
-                                                          initiate=True,
-                                                          working_dir=working_dir,
-                                                          ncores=ncores, sn_only=sn_only, 
-                                                          **kwargs)
-        
-    else:
-        raise NotImplementedError(
-            f"Only the cigale sed fitted has been implemented. {sedfitter} given")
-            
-    # run sedfit
-    bestmodel_dir = sfitter.run()  # bestmodel_dir trick is for dask
-
-    # get the results
+    #
+    # Step 1: run sedfit | takes a few minutes
+    #
+    sfitter, bestmodel_dir = get_sfitter_dir(cube_cutout, redshift, working_dir,
+                                    sedfitter=sedfitter, ncores=ncores, 
+                                    sn_only=sn_only, **kwargs)
+    #
+    # Step 2: convert it in cube | takes few minutes
+    # 
     specdata, lbda = sfitter.get_sample_spectra(bestmodel_dir=bestmodel_dir,
                                               lbda_sample=lbda,
                                               saveplot_rmspull=saveplot_rmspull,
@@ -77,6 +69,28 @@ def run_sedfitter(cube_cutout, redshift, working_dir,
         intcube.to_hdf(fileout)
     
     return intcube
+
+
+def get_sfitter_dir(cube_cutout, redshift, working_dir,
+                   sedfitter="cigale", ncores=1, 
+                   sn_only=False, **kwargs):
+    """ """
+    tmp_inputpath = os.path.join(working_dir, "input_sedfitting.txt")
+    if sedfitter == "cigale":
+        sfitter = Cigale.from_cube_cutouts(cube_cutout, redshift,
+                                            tmp_inputpath=tmp_inputpath,
+                                            initiate=True,
+                                            working_dir=working_dir,
+                                            ncores=ncores, sn_only=sn_only, 
+                                            **kwargs)
+        
+    else:
+        raise NotImplementedError(
+            f"Only the cigale sed fitted has been implemented. {sedfitter} given")
+
+    bestmodel_dir = sfitter.run()  # bestmodel_dir trick is for dask
+    return sfitter, bestmodel_dir
+
 
 
 
