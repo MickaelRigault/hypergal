@@ -184,7 +184,7 @@ def run_hypergal(cubefile, radec, redshift, spxy = None,
     ## 2.3 fit meta-slices
     _fit_slices_projection = SceneFitter.fit_slices_projection
     if dasked:
-        _fit_slices_projection = dask.delayed(fit_slices_projection)
+        _fit_slices_projection = dask.delayed(_fit_slices_projection)
         
     best_fits = {}
     for f_ in filters_fit:
