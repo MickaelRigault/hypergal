@@ -21,6 +21,8 @@ if __name__ == '__main__':
     parser.add_argument("--ncores", default=1, type=int,
                         help="number of cores used for sedfitting")
 
+    parser.add_argument("--sedfitting", default=False, type=bool,
+                        help="run sedfitting only.")
     
     args = parser.parse_args()
     # ============== #
@@ -35,12 +37,26 @@ if __name__ == '__main__':
         ra, dec = args.radec.split(",")
         radec = [float(ra), float(dec)]
 
+        
+    # ------------------- #
+    #   Input Properties  #
+    # ------------------- #
+    run_properties = dict(cubefile=args.filename,
+                          redshift=redshift, radec=radec,
+                          ncores=args.ncores,
+                          dasked=False)
 
-    
-    hypergal.run_sedfitting(cubefile=args.filename,
-                            redshift=redshift, radec=radec,
-                            ncores=args.ncores,
-                            dasked=False)
-                            
-    print(f"processing {args.filename} is done")
+        
+    # ------------------- #
+    #   SED Fitting only  #
+    # ------------------- #
+    if args.sedfitting:
+        hypergal.run_sedfitting( **run_properties )
+        print(f"sedfitting processing {args.filename} is done")
+    # ------------------- #
+    #   Full Hypergal     #
+    # ------------------- #        
+    else:
+        hypergal.run_hypergal( **run_properties )
+        print(f"full hypergal processing {args.filename} is done")
                 

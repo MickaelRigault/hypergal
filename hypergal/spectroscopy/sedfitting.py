@@ -43,7 +43,7 @@ def run_sedfitter(cube_cutout, redshift, working_dir,
                   sedfitter="cigale", ncores=1, lbda=None,
                   saveplot_rmspull=None, saveplot_intcube=None, 
                   sn_only=False,
-                  fileout = None, 
+                  fileout = None, verbose=False,
                   **kwargs):
     """ """
     if lbda is None:

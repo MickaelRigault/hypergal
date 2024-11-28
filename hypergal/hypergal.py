@@ -104,6 +104,7 @@ def run_hypergal(cubefile, radec, redshift, spxy = None,
     from . import psf
     from .spectroscopy.basics import get_calibrated_cube
     from .photometry.panstarrs import get_cutout
+    from .photometry.basics import get_filter    
     from .scene.basics import SEDM_to_PS1_SCALERATIO, PointSource
     from .fit import SceneFitter, MultiSliceParameters, Priors, slicefit_to_target_spec, build_hg_cubes, get_sourcedf, fit_cube
     from .spectroscopy.sedfitting import run_sedfitter
