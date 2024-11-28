@@ -119,7 +119,12 @@ def run_hypergal(cubefile, radec, redshift, spxy = None,
     info = io.parse_filename(cubefile)
     filedir = os.path.dirname(cubefile)
     working_dir = os.path.join(filedir, f"tmp_{info['sedmid']}")
-    
+
+
+    if verbose:
+        print(f"{time.ctime()} starting: {dasked=}")
+
+        
     # ------------------- #
     #  Step 1: Loading    #
     # ------------------- #
@@ -375,7 +380,7 @@ def run_hypergal(cubefile, radec, redshift, spxy = None,
 
         
     fig = global_report(cube, hostmodel, snmodel, bkgdmodel, source_coutcube, 
-                        get_sourcedf(radec, cubefile, size), 
+                        get_sourcedf(radec, cubefile, size).compute(), 
                         bestfit_completfit, bestfit_mfit, radec, redshift, cubefile, lbda_range, nslices, 
                         saveplot=None)
     
