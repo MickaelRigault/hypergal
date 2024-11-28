@@ -17,7 +17,7 @@ def run_hypergal(cubefile, radec, redshift, spxy = None,
                  use_exist_intcube=True, ncores=None,
                  # slices
                  lbda_range=[5000, 8500], nslices=6,
-                 curved_bkgd=True,
+                 curved_bkgd=True, verbose=False,
                 ):
     """ top level function to run hypergal
 
@@ -122,9 +122,11 @@ def run_hypergal(cubefile, radec, redshift, spxy = None,
     # ------------------- #
     #  Step 1: Loading    #
     # ------------------- #
+    if verbose:
+        print(f"start 'step 1: loading' : {cubefile=}, {radec=}, {spxy=}")
     
     # 1.1 load the cube
-    cube = get_calibrated_cube(cubefile, radec=radec, spxy=spxy)    
+    cube = get_calibrated_cube(cubefile, radec=radec, spxy=spxy)
     if dasked:
         cube = cube.persist() # make sense to persist as often used.
     
@@ -163,6 +165,8 @@ def run_hypergal(cubefile, radec, redshift, spxy = None,
     # --------------------- #
     #  Step 2: Fit CutOuts  #
     # --------------------- #
+    if verbose:
+        print(f"start 'step 2: fit cutous'")
 
     ## 2.1: get meta-slices
     cout_filter_slices = {f_: source_coutcube.get_slice(index=filters.index(f_), slice_object=True)
@@ -188,6 +192,9 @@ def run_hypergal(cubefile, radec, redshift, spxy = None,
         
     best_fits = {}
     for f_ in filters_fit:
+        if verbose:
+            print(f"start 'step 2.3: per filter : {f_}'")
+            
         gm = psf.gaussmoffat.GaussMoffat2D(alpha=2.5, eta=1)
         if dasked:
             ps = dask.delayed(PointSource)(gm, mpoly)
@@ -223,6 +230,8 @@ def run_hypergal(cubefile, radec, redshift, spxy = None,
     # ----------------- #
     #  Step 3: SED      #
     # ----------------- #
+    if verbose:
+        print(f"start 'step 3: SED fitting")
 
     intcube_filepath = io.e3dfilename_to_hgcubes(cubefile, "intcube")
     if use_exist_intcube and os.path.exists(intcube_filepath):
@@ -233,13 +242,17 @@ def run_hypergal(cubefile, radec, redshift, spxy = None,
             read_wcscube = WCSCube.read_hdf
             
         int_cube = read_wcscube(intcube_filepath)            
-
+        if verbose:
+            print(f" => intcube existed, so using it.")
     else:
         saveplot_rmspull = None# plotbase + '_' + name + '_cigale_pullrms.png'
         saveplot_intcube = None# plotbase + '_' + name + '_intcube.png'
         if dasked:
             run_sedfitter = dask.delayed(run_sedfitter)
-                
+
+        if verbose:
+            print(f" => build the intcube from Cigale")
+            
         int_cube = run_sedfitter(source_coutcube,
                                          redshift=redshift, working_dir=working_dir,
                                          sedfitter="cigale", lbda=SEDM_LBDA,
@@ -255,6 +268,9 @@ def run_hypergal(cubefile, radec, redshift, spxy = None,
     # ------------------- #
     #  Step 4: ADR & PSF  #
     # ------------------- #
+    if verbose:
+        print(f"start Step 4: 'ADR and PSF fitting' ")
+
     ## 4.1 define meta-slices
     mcube_sedm = source_sedmcube.to_metacube(lbda_range, nslices=nslices)
     mcube_intr = int_cube.to_metacube(lbda_range, nslices=nslices)
@@ -292,6 +308,9 @@ def run_hypergal(cubefile, radec, redshift, spxy = None,
     # ------------------- #
     #  Step 5: Amplitude  #
     # ------------------- #
+    if verbose:
+        print(f"start Step 5: 'spectrum amplitude' ")
+        
     ## 5.1 fit cube assuming ADR- and PSF-model (amplitude free)
     bestfit_completfit = fit_cube( source_sedmcube, int_cube, radec,
                                       dasked=dasked,
@@ -321,6 +340,9 @@ def run_hypergal(cubefile, radec, redshift, spxy = None,
     # ------------------- #
     #  Step 6: Storing    #
     # ------------------- #
+    if verbose:
+        print(f"start Step 6 and last: 'storing' ")
+        
     storing = []
     
     ## 6.1: final hypergal SN spectrum
