@@ -1,6 +1,7 @@
 """ top level script """
 import os
 import numpy as np
+import time # for verbose
 
 
 def run_hypergal(cubefile, radec, redshift, spxy = None,
@@ -123,7 +124,7 @@ def run_hypergal(cubefile, radec, redshift, spxy = None,
     #  Step 1: Loading    #
     # ------------------- #
     if verbose:
-        print(f"start 'step 1: loading' : {cubefile=}, {radec=}, {spxy=}")
+        print(f"{time.ctime()} start 'step 1: loading' : {cubefile=}, {radec=}, {spxy=}")
     
     # 1.1 load the cube
     cube = get_calibrated_cube(cubefile, radec=radec, spxy=spxy)
@@ -166,7 +167,7 @@ def run_hypergal(cubefile, radec, redshift, spxy = None,
     #  Step 2: Fit CutOuts  #
     # --------------------- #
     if verbose:
-        print(f"start 'step 2: fit cutous'")
+        print(f"{time.ctime()} start 'step 2: fit cutous'")
 
     ## 2.1: get meta-slices
     cout_filter_slices = {f_: source_coutcube.get_slice(index=filters.index(f_), slice_object=True)
@@ -193,7 +194,7 @@ def run_hypergal(cubefile, radec, redshift, spxy = None,
     best_fits = {}
     for f_ in filters_fit:
         if verbose:
-            print(f"start 'step 2.3: per filter : {f_}'")
+            print(f"{time.ctime()} start 'step 2.3: per filter : {f_}'")
             
         gm = psf.gaussmoffat.GaussMoffat2D(alpha=2.5, eta=1)
         if dasked:
@@ -231,7 +232,7 @@ def run_hypergal(cubefile, radec, redshift, spxy = None,
     #  Step 3: SED      #
     # ----------------- #
     if verbose:
-        print(f"start 'step 3: SED fitting")
+        print(f"{time.ctime()} start 'step 3: SED fitting")
 
     intcube_filepath = io.e3dfilename_to_hgcubes(cubefile, "intcube")
     if use_exist_intcube and os.path.exists(intcube_filepath):
@@ -269,7 +270,7 @@ def run_hypergal(cubefile, radec, redshift, spxy = None,
     #  Step 4: ADR & PSF  #
     # ------------------- #
     if verbose:
-        print(f"start Step 4: 'ADR and PSF fitting' ")
+        print(f"{time.ctime()} start Step 4: 'ADR and PSF fitting' ")
 
     ## 4.1 define meta-slices
     mcube_sedm = source_sedmcube.to_metacube(lbda_range, nslices=nslices)
@@ -309,7 +310,7 @@ def run_hypergal(cubefile, radec, redshift, spxy = None,
     #  Step 5: Amplitude  #
     # ------------------- #
     if verbose:
-        print(f"start Step 5: 'spectrum amplitude' ")
+        print(f"{time.ctime()} start Step 5: 'spectrum amplitude' ")
         
     ## 5.1 fit cube assuming ADR- and PSF-model (amplitude free)
     bestfit_completfit = fit_cube( source_sedmcube, int_cube, radec,
@@ -341,7 +342,7 @@ def run_hypergal(cubefile, radec, redshift, spxy = None,
     #  Step 6: Storing    #
     # ------------------- #
     if verbose:
-        print(f"start Step 6 and last: 'storing' ")
+        print(f"{time.ctime()} start Step 6 and last: 'storing' ")
         
     storing = []
     
