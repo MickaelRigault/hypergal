@@ -1,7 +1,9 @@
 import numpy as np
 from shapely.geometry import Point
 from ..spectroscopy import adr as spectroadr
-
+from ..spectroscopy.adr import ADRFitter
+from .. import psf
+import pyifu
 
 Mg = 5177
 Na = 5896
@@ -55,10 +57,8 @@ def global_report(datacub, hostmod, snmod, bkgdmod, coutcube, df,
     fullmod = datacub.get_new(
         newdata=hostmod.data + snmod.data + bkgdmod.data)
     fullres = datacub.get_new(newdata=datacub.data - fullmod.data)
-    hostiso = datacub.get_new(
-        newdata=datacub.data - snmod.data - bkgdmod.data)
-    sniso = datacub.get_new(
-        newdata=datacub.data - hostmod.data - bkgdmod.data, newvariance=datacub.variance)
+    hostiso = datacub.get_new(newdata=datacub.data - snmod.data - bkgdmod.data)
+    sniso = datacub.get_new(newdata=datacub.data - hostmod.data - bkgdmod.data, newvariance=datacub.variance)
 
     mslices = sniso.to_metaslices(
         lbda_ranges=mainlbdarange, nslices=nslices, as_slice=True)
@@ -136,8 +136,7 @@ def global_report(datacub, hostmod, snmod, bkgdmod, coutcube, df,
     gs1 = gs[2, 0].subgridspec(1, 2)
     gs1bl = gs[3, 0].subgridspec(1, 1)
     gs2 = gs[4, 0].subgridspec(1, 3, width_ratios=[1, 0.8, 0.8], wspace=0.5)
-    gs3 = gs[0, 1].subgridspec(
-        1, 4, width_ratios=[1, 0.6667, 0.6667, 0.6667])
+    gs3 = gs[0, 1].subgridspec(1, 4, width_ratios=[1, 0.6667, 0.6667, 0.6667])
     gs3bl = gs[1, 1].subgridspec(1, 1)
     gs4 = gs[2, 1].subgridspec(1, 1)
     gs4bl = gs[3, 1].subgridspec(1, 1)
@@ -174,33 +173,33 @@ def global_report(datacub, hostmod, snmod, bkgdmod, coutcube, df,
     slicedat = np.array([np.nanmean(np.delete(datacube.data[lbdacond].T[i], np.isnan(datacube.data[lbdacond].T[i])))
                          for i in range(len(datacube.data[lbdacond].T))])
 
-    slice_err = np.sqrt(
-        np.nansum(datacube.variance[lbdacond].T, axis=1))/len(datacube.data[lbdacond])
-    slicepull = pyifu.spectroscopy.Slice.from_data(data=(slicedat - slicemodel)/(np.sqrt(2)*(
-        slice_err)), spaxel_mapping=datacube.spaxel_mapping, spaxel_vertices=datacube.spaxel_vertices, lbda=np.mean(datacube.lbda[lbdacond]))  # PULL
+    slice_err = np.sqrt(np.nansum(datacube.variance[lbdacond].T, axis=1))/len(datacube.data[lbdacond])
+    slicepull = pyifu.spectroscopy.Slice.from_data(data=(slicedat - slicemodel)/(np.sqrt(2)*(slice_err)),
+                                                   spaxel_mapping=datacube.spaxel_mapping,
+                                                   spaxel_vertices=datacube.spaxel_vertices,
+                                                   lbda=np.mean(datacube.lbda[lbdacond]))  # PULL
     # slicepull = slicerms##RMS
 
-    vmin = np.nanpercentile(datacube.get_slice(
-        lbda_min=mainlbdarange[0], lbda_max=mainlbdarange[1]), 0.5)
-    vmax = np.nanpercentile(datacube.get_slice(
-        lbda_min=mainlbdarange[0], lbda_max=mainlbdarange[1]), 99.5)
+    vmin = np.nanpercentile(datacube.get_slice(lbda_min=mainlbdarange[0], lbda_max=mainlbdarange[1]), 0.5)
+    vmax = np.nanpercentile(datacube.get_slice(lbda_min=mainlbdarange[0], lbda_max=mainlbdarange[1]), 99.5)
 
     datacube._display_im_(axim=axdat, vmin=vmin, vmax=vmax,
                           lbdalim=mainlbdarange, cmap=cmap, rasterized=False)
     axdat.scatter(*ADRFitter.refract(ADRFitter.fitted_xref, ADRFitter.fitted_yref,
                   6000), marker='x', color='r', s=32, zorder=10, label='Target')
+    
     if len(df) > 0:
         for n_ in range(len(df)):
             if np.logical_and(*abs(hostiso.wcs.all_world2pix(coutcube.wcs.all_pix2world(np.array([df.x[n_], df.y[n_]])[:, None].T, 0), 0)[0]) < (22, 22)):
-                axdat.scatter(*hostiso.wcs.all_world2pix(coutcube.wcs.all_pix2world(np.array([df.x[n_], df.y[n_]])[
-                    :, None].T, 0), 0)[0], marker='x', color='k', s=32, zorder=10, label='Host')
-    axdat.legend(
-        *[*zip(*{l: h for h, l in zip(*axdat.get_legend_handles_labels())}.items())][::-1], loc='lower left')
+                axdat.scatter(*hostiso.wcs.all_world2pix(coutcube.wcs.all_pix2world(np.array([df.x[n_], df.y[n_]])[:, None].T, 0), 0)[0],
+                                  marker='x', color='k', s=32, zorder=10, label='Host')
+    axdat.legend(*[*zip(*{l: h for h, l in zip(*axdat.get_legend_handles_labels())}.items())][::-1], loc='lower left')
 
     modelcube._display_im_(axim=axmod, vmin=vmin, vmax=vmax,
                            lbdalim=mainlbdarange, cmap=cmap, rasterized=False)
     axmod.scatter(*ADRFitter.refract(ADRFitter.fitted_xref,
-                  ADRFitter.fitted_yref, 6000), marker='x', color='r', s=32, zorder=10)
+                   ADRFitter.fitted_yref, 6000),
+                   marker='x', color='r', s=32, zorder=10)
     if len(df) > 0:
         for n_ in range(len(df)):
             if np.logical_and(*abs(hostiso.wcs.all_world2pix(coutcube.wcs.all_pix2world(np.array([df.x[n_], df.y[n_]])[:, None].T, 0), 0)[0]) < (22, 22)):
@@ -254,34 +253,28 @@ def global_report(datacub, hostmod, snmod, bkgdmod, coutcube, df,
     x = np.linspace(mu - 5*sigma, mu + 5*sigma, 100)
 
     if len(df) > 0:
-        hostmodonly = hostmod.get_extsource_cube(
-            df, wcsin=coutcube.wcs, wcsout=hostiso.wcs, sourcescale=5, )
-        hostobsonly = hostiso.get_extsource_cube(
-            df, wcsin=coutcube.wcs, wcsout=hostiso.wcs, sourcescale=5, )
+        hostmodonly = hostmod.get_extsource_cube(df, wcsin=coutcube.wcs, wcsout=hostiso.wcs, sourcescale=5, )
+        hostobsonly = hostiso.get_extsource_cube(df, wcsin=coutcube.wcs, wcsout=hostiso.wcs, sourcescale=5, )
         x, y = np.transpose(hostobsonly.index_to_xy(hostobsonly.indexes))
 
         flagin = (hostobsonly.lbda > 4000) & (hostobsonly.lbda < 9300)
 
         # axhostisospec.plot(hostmodonly.lbda[flagin], np.nanmean(
         #    hostmodonly.data[flagin].T, axis=0), c='r', label='Host Model')
-        axhostisospec.plot(hostobsonly.lbda[flagin], np.nanmean(
-            hostobsonly.data[flagin].T, axis=0), label='Host isolated')
+        axhostisospec.plot(hostobsonly.lbda[flagin], np.nanmean(hostobsonly.data[flagin].T, axis=0), label='Host isolated')
         axhostisospec.fill_between(hostobsonly.lbda[flagin], np.nanmean(hostobsonly.data[flagin].T, axis=0) - (np.nanmean(hostobsonly.variance[flagin].T, axis=0)/len(hostobsonly.lbda[flagin]))**0.5,
                                    np.nanmean(hostobsonly.data[flagin].T, axis=0) + (np.nanmean(hostobsonly.variance[flagin].T, axis=0)/len(hostobsonly.lbda[flagin]))**0.5, alpha=0.5)
 
-    vmin = np.nanpercentile(hostiso.get_slice(
-        lbda_min=mainlbdarange[0], lbda_max=mainlbdarange[1]), 0.5)
-    vmax = np.nanpercentile(hostiso.get_slice(
-        lbda_min=mainlbdarange[0], lbda_max=mainlbdarange[1]), 99.5)
+    vmin = np.nanpercentile(hostiso.get_slice(lbda_min=mainlbdarange[0], lbda_max=mainlbdarange[1]), 0.5)
+    vmax = np.nanpercentile(hostiso.get_slice(lbda_min=mainlbdarange[0], lbda_max=mainlbdarange[1]), 99.5)
 
-    hostiso._display_im_(
-        axim=axhostiso, lbdalim=mainlbdarange, vmin=vmin, vmax=vmax)
+    hostiso._display_im_(axim=axhostiso, lbdalim=mainlbdarange, vmin=vmin, vmax=vmax)
     axhostiso.set_aspect('equal')
+
     if len(df) > 0:
         axhostiso.scatter(x, y, c='k', marker='D', s=4)
         prop = dict(loc="center", color="0.5", fontsize="medium")
-        axhostiso.set_title(
-            'Host isolated : Data - SNmodel - BKGmodel', **prop)
+        axhostiso.set_title('Host isolated : Data - SNmodel - BKGmodel', **prop)
         axhostisospec.set_xlabel(r'Wavelength($\AA$)')
         axhostisospec.set_ylabel(r'Flux ($erg.s^{-1}.cm^{-2}.\AA^{-1}$)')
 
@@ -302,12 +295,18 @@ def global_report(datacub, hostmod, snmod, bkgdmod, coutcube, df,
                for xl in xablines_gal]
         yablines_gal = np.nanmean(hostobsonly.data[flagin].T, axis=0)[idx]
 
-        axhostisospec.vlines(em_lines(redshift), ymin=yemlines_gal + 0.1*np.median(np.nanmean(hostmodonly.data[flagin].T, axis=0)), ymax=yemlines_gal + 0.15*np.median(
-            np.nanmean(hostmodonly.data[flagin].T, axis=0)), color='k', alpha=0.5, ls='--', label='EM/AB lines' + '\n' + f'Input z={np.round(redshift,4)}')
-        axhostisospec.vlines(ab_lines(redshift), ymin=yablines_gal - 0.1*np.median(np.nanmean(
-            hostmodonly.data[flagin].T, axis=0)), ymax=yablines_gal - 0.15*np.median(np.nanmean(hostmodonly.data[flagin].T, axis=0)), color='k', alpha=0.5, ls='--')
-        axhostisospec.vlines(xo3lines_gal, ymin=yo3lines_gal + 0.1*np.median(np.nanmean(hostmodonly.data[flagin].T, axis=0)), ymax=yo3lines_gal + 0.15*np.median(
-            np.nanmean(hostmodonly.data[flagin].T, axis=0)), color='k', alpha=0.5, ls='--')
+        axhostisospec.vlines(em_lines(redshift), ymin=yemlines_gal + 0.1*np.median(np.nanmean(hostmodonly.data[flagin].T, axis=0)),
+                                 ymax=yemlines_gal + 0.15*np.median(np.nanmean(hostmodonly.data[flagin].T, axis=0)),
+                                 color='k', alpha=0.5, ls='--', label='EM/AB lines' + '\n' + f'Input z={np.round(redshift,4)}')
+        
+        axhostisospec.vlines(ab_lines(redshift), ymin=yablines_gal - 0.1*np.median(np.nanmean(hostmodonly.data[flagin].T, axis=0)),
+                                 ymax=yablines_gal - 0.15*np.median(np.nanmean(hostmodonly.data[flagin].T, axis=0)),
+                                 color='k', alpha=0.5, ls='--')
+        
+        axhostisospec.vlines(xo3lines_gal, ymin=yo3lines_gal + 0.1*np.median(np.nanmean(hostmodonly.data[flagin].T, axis=0)),
+                                 ymax=yo3lines_gal + 0.15*np.median(np.nanmean(hostmodonly.data[flagin].T, axis=0)),
+                                 color='k', alpha=0.5, ls='--')
+        
         for l in range(len(all_em_names)):
             axhostisospec.text(em_lines(redshift)[l], yemlines_gal[l] + 0.17*np.median(np.nanmean(
                 hostmodonly.data[flagin].T, axis=0)), all_em_names[l], ha='center', va='center')
@@ -318,14 +317,15 @@ def global_report(datacub, hostmod, snmod, bkgdmod, coutcube, df,
         for l in range(len(all_ab_names)):
             axhostisospec.text(ab_lines(redshift)[l], yablines_gal[l] - 0.17*np.median(np.nanmean(
                 hostmodonly.data[flagin].T, axis=0)), all_ab_names[l], ha='center', va='center')
+            
         axhostisospec.legend()
         axhostiso.set_axis_off()
 
     rms_cub = snmod.get_new(newdata=fullres.data / fullmod.data)
-    rms_subcub = rms_cub.get_partial_cube(rms_cub.indexes, np.argwhere(
-        (datacub.lbda > 5000) & (datacub.lbda < 8500)).squeeze())
+    rms_subcub = rms_cub.get_partial_cube(rms_cub.indexes, np.argwhere((datacub.lbda > 5000) & (datacub.lbda < 8500)).squeeze())
     rms_slice = pyifu.spectroscopy.Slice.from_data(data=np.sqrt(len(rms_subcub.data)**-1 * np.nansum((rms_subcub.data)**2, axis=0)),
-                                                   spaxel_mapping=rms_subcub.spaxel_mapping, spaxel_vertices=rms_subcub.spaxel_vertices, lbda=np.mean(datacub.lbda[(datacub.lbda > 5000) & (datacub.lbda < 8500)]))
+                                                   spaxel_mapping=rms_subcub.spaxel_mapping, spaxel_vertices=rms_subcub.spaxel_vertices,
+                                                    lbda=np.mean(datacub.lbda[(datacub.lbda > 5000) & (datacub.lbda < 8500)]))
 
     p = Point(xoff, yoff)
     circle = p.buffer(8)
@@ -380,7 +380,7 @@ def global_report(datacub, hostmod, snmod, bkgdmod, coutcube, df,
     axsnprof.set_title(
         fr'SN profile with Gaussian + Moffat model (from Metaslice at {np.round(mslice.lbda,0)} $\AA$)', **prop)
     axsnprof.vlines(radiusrav[np.where(abs(profil*ampl_ps*norm_comp/np.max(profil*ampl_ps*norm_comp) - 0.5) == np.min(abs(profil*ampl_ps*norm_comp/np.max(profil*ampl_ps*norm_comp) - 0.5)))[0]], -0.5, 1.5, ls='--', color='b', alpha=0.5,
-                    label=fr'fitted FWHM={np.round(radiusrav[np.where(abs(profil*ampl_ps*norm_comp/np.max(sndat) -0.5) == np.min(abs(profil*ampl_ps*norm_comp/np.max(sndat) - 0.5)))[0]][0]*2*0.558,2)} " (1spx = 0.558")')
+            label=fr'fitted FWHM={np.round(radiusrav[np.where(abs(profil*ampl_ps*norm_comp/np.max(sndat) -0.5) == np.min(abs(profil*ampl_ps*norm_comp/np.max(sndat) - 0.5)))[0]][0]*2*0.558,2)} " (1spx = 0.558")')
     axsnprof.legend()
 
     speccoef = fullparam.xs('norm_comp', level=1)['values'].values
